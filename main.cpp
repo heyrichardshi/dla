@@ -4,8 +4,7 @@
 #include <chrono>
 #include <ctime>
 
-#include "dla.hpp"
-#include "walk.hpp"
+#include "dla.cpp"
 
 using namespace std;
 

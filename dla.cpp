@@ -1,4 +1,15 @@
+#include <cmath>
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+#include "random.hpp"
+#include "walk.hpp"
 #include "dla.hpp"
+
+using namespace std;
+
+extern const double PI;
 
 DLA::DLA() : seedRadius(1), killRadius(3), stickDistance(0.25), stepLength(0.5), maxSize(0), size(0) {
     push(0, 0);
@@ -37,7 +48,7 @@ bool DLA::stick(double x, double y) {
         return false;
     }
 
-    for (vector<vector<double>>::reverse_iterator i = aggregate.rbegin(); i != aggregate.rend() i++) {
+    for (vector<vector<double>>::reverse_iterator i = aggregate.rbegin(); i != aggregate.rend(); i++) {
         distance = sqrt(pow(x - (*i)[0], 2) + pow(y - (*i)[1], 2));
         if (distance < stickDistance) {
             push(x, y);
