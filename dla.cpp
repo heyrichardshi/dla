@@ -186,7 +186,7 @@ void DLA::checkMax(double radius) {
 
     if (seedRadius < 0.5 * maxRadius) {
         seedRadius = 2 * maxRadius;
-        killRadius - 5 * maxRadius
+        killRadius = 5 * maxRadius;
     }
 }
 
