@@ -183,6 +183,11 @@ bool DLA::kill(double x, double y) {
 
 void DLA::checkMax(double radius) {
     maxRadius = radius > maxRadius ? radius : maxRadius;
+
+    if (seedRadius < 0.5 * maxRadius) {
+        seedRadius = 2 * maxRadius;
+        killRadius - 5 * maxRadius
+    }
 }
 
 void DLA::run(int N) {
