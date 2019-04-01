@@ -18,10 +18,8 @@ class DLA {
     double killRadius;
     double stepLength;
     double stickDistance;
-    double maxSize;
+    double maxRadius;
     vector<vector<double>> aggregate;
-    double furthest[2];
-    double furthestDistance;
     vector<vector<double>> NE;
     vector<vector<double>> NW;
     vector<vector<double>> SW;
@@ -32,7 +30,7 @@ public:
     bool walk();
     bool stick(double x, double y);
     bool kill(double x, double y);
-    void calcMaxSize();
+    void checkMax(double radius);
     int quadrant(double theta);
     void push(double x, double y);
     void pushQ1(double x, double y);
