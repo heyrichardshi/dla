@@ -205,3 +205,22 @@ void DLA::print(string filename) {
         file << i[0] << " " << i[1] << endl;
     }
 }
+
+void DLA::calcFractalDimension() {
+    for (int i = 0; i < int(maxRadius) + 2; i++) {
+        countR.push_back(0);
+    }
+
+    for (auto i : aggregate) {
+        int distance = sqrt(pow(i[0], 2) + pow(i[1], 2));
+        countR[distance + 1]++;
+    }
+
+    for (int i = 1; i < int(maxRadius) + 2; i++) {
+        countR[i] += countR[i - 1];
+    }
+
+    for (auto i : countR) {
+        cout << i << endl;
+    }
+}

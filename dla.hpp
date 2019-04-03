@@ -25,6 +25,7 @@ class DLA {
     vector<vector<double>> SW;
     vector<vector<double>> SE;
     int size;
+    vector<double> countR;
 public:
     DLA();
     bool walk();
@@ -39,6 +40,7 @@ public:
     void pushQ4(double x, double y);
     void run(int N);
     void print(string filename);
+    void calcFractalDimension();
 };
 
 #endif //DLA2_DLA_HPP
