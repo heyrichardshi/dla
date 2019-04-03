@@ -3,6 +3,9 @@
 #include <fstream>
 #include <iostream>
 
+#include <thread>
+#include <chrono>
+
 #include "random.hpp"
 #include "walk.hpp"
 #include "dla.hpp"
@@ -11,12 +14,11 @@ using namespace std;
 
 extern const double PI;
 
-DLA::DLA() : seedRadius(1), killRadius(3), stickDistance(0.25), stepLength(0.5), maxRadius(0), size(0) {
-    push(0, 0);
-    pushQ1(0, 0);
-    pushQ2(0, 0);
-    pushQ3(0, 0);
-    pushQ4(0, 0);
+DLA::DLA() : seedRadius(1), killRadius(3), stickDistance(0.25), stepLength(0.5), maxRadius(0), size(1) {
+    double p[2] = {0, 0};
+    vector<double> v(p, p + sizeof(p) / sizeof(double));
+    aggregate.push_back(v);
+    ringUp();
 }
 
 bool DLA::walk() {
@@ -38,53 +40,124 @@ bool DLA::walk() {
     }
 }
 
-void DLA::push(double x, double y) {
-    double origin[2] = {x, y};
-    vector<double> v(origin, origin + sizeof(origin) / sizeof(double));
+void DLA::push(double x, double y, int q) { // TODO
+    double radius = sqrt(pow(x,2) + pow(y,2));
+    double theta = atan2(y, x);
+
+    int qx = neighborX(q);
+    int qy = neighborY(q);
+    int r = radius;
+
+    bool edgeX = (abs(x) <= stickDistance);
+    bool edgeY = (abs(y) <= stickDistance);
+
+    double p[2] = {x, y};
+    vector<double> v(p, p + sizeof(p) / sizeof(double));
+
     aggregate.push_back(v);
+
+    cluster[r][q].push_back(v);
+
+    if (edgeX) {
+        cluster[r][qx].push_back(v);
+    }
+    if (edgeY) {
+        cluster[r][qy].push_back(v);
+    }
+
+    if ((r != 0) && (radius - r <= stickDistance)) {
+        cluster[r - 1][q].push_back(v);
+        if (edgeX) {
+            cluster[r - 1][qx].push_back(v);
+        }
+        if (edgeY) {
+            cluster[r - 1][qy].push_back(v);
+        }
+    }
+    else if (r + 1 - radius <= stickDistance) {
+        if (r + 1 >= cluster.size()) {
+            ringUp();
+        }
+        cluster[r + 1][q].push_back(v);
+        if (edgeX) {
+            cluster[r + 1][qx].push_back(v);
+        }
+        if (edgeY) {
+            cluster[r + 1][qy].push_back(v);
+        }
+    }
+    cout << size << endl; // TODO
     size++;
-}
-
-void DLA::pushQ1(double x, double y) {
-    double origin[2] = {x, y};
-    vector<double> v(origin, origin + sizeof(origin) / sizeof(double));
-    NE.push_back(v);
-}
-
-void DLA::pushQ2(double x, double y) {
-    double origin[2] = {x, y};
-    vector<double> v(origin, origin + sizeof(origin) / sizeof(double));
-    NW.push_back(v);
-}
-
-void DLA::pushQ3(double x, double y) {
-    double origin[2] = {x, y};
-    vector<double> v(origin, origin + sizeof(origin) / sizeof(double));
-    SW.push_back(v);
-}
-
-void DLA::pushQ4(double x, double y) {
-    double origin[2] = {x, y};
-    vector<double> v(origin, origin + sizeof(origin) / sizeof(double));
-    SE.push_back(v);
 }
 
 int DLA::quadrant(double theta) { // theta within [-PI, PI]
     if ((theta >= 0) && (theta < PI / 2)) {
-        return 1; // quadrant 1 (NE)
+        return 0; // quadrant 1
     }
     else if ((theta >= PI / 2) && (theta < PI)) {
-        return 2; // quadrant 2 (NW)
+        return 1; // quadrant 2
     }
     else if ((theta >= -PI / 2) && (theta < 0)) {
-        return 4; // quadrant 4 (SE)
+        return 3; // quadrant 4
     }
     else {
-        return 3; // quadrant 3 (SW)
+        return 2; // quadrant 3
     }
 }
 
-bool DLA::stick(double x, double y) {
+int DLA::neighborX(int q) {
+    switch(q) {
+        case 0:
+            return 1;
+        case 1:
+            return 0;
+        case 2:
+            return 3;
+        case 3:
+            return 2;
+    }
+    return -1;
+}
+
+int DLA::neighborY(int q) {
+    switch(q) {
+        case 0:
+            return 3;
+        case 1:
+            return 2;
+        case 2:
+            return 1;
+        case 3:
+            return 0;
+    }
+    return -1;
+}
+
+int DLA::ring(double radius) {
+    int r = radius;
+
+    if (r >= cluster.size()) {
+        ringUp();
+    }
+
+    return r;
+}
+
+void DLA::ringUp() {
+    vector<double> origin(2,0); // (x,y)
+
+    vector<vector<double>> v; // position vector
+    v.push_back(origin);
+
+    vector<vector<vector<double>>> q; // quadrant vector
+    for (int i = 0; i < 4; i++) {
+        q.push_back(v);
+    }
+
+    cluster.push_back(q); // ring vector
+}
+
+bool DLA::stick(double x, double y) { // TODO
     double radius = sqrt(pow(x,2) + pow(y,2));
 
     if (radius > maxRadius + stickDistance) {
@@ -93,87 +166,20 @@ bool DLA::stick(double x, double y) {
 
     double theta = atan2(y, x);
 
-    switch(quadrant(theta)) {
-        case 1:
-            for (vector<vector<double>>::reverse_iterator i = NE.rbegin(); i != NE.rend(); i++ ) {
-                double distance = sqrt(pow(x - (*i)[0], 2) + pow(y - (*i)[1], 2));
-                if (distance < stickDistance) {
-                    push(x, y);
-                    pushQ1(x, y);
-                    if (abs(x) <= stickDistance) {
-                        pushQ2(x, y);
-                    }
-                    if (abs(y) <= stickDistance) {
-                        pushQ4(x, y);
-                    }
+    int r = ring(radius);
+    int q = quadrant(theta);
 
-                    checkMax(radius);
-                    cout << size << endl; // TODO: cout
-                    return true;
-                }
-            }
-            break;
-        case 2:
-            for (vector<vector<double>>::reverse_iterator i = NW.rbegin(); i != NW.rend(); i++ ) {
-                double distance = sqrt(pow(x - (*i)[0], 2) + pow(y - (*i)[1], 2));
-                if (distance < stickDistance) {
-                    push(x, y);
-                    pushQ2(x, y);
-                    if (abs(x) <= stickDistance) {
-                        pushQ1(x, y);
-                    }
-                    if (abs(y) <= stickDistance) {
-                        pushQ3(x, y);
-                    }
-
-                    checkMax(radius);
-                    cout << size << endl; // TODO: cout
-                    return true;
-                }
-            }
-            break;
-        case 3:
-            for (vector<vector<double>>::reverse_iterator i = SW.rbegin(); i != SW.rend(); i++ ) {
-                double distance = sqrt(pow(x - (*i)[0], 2) + pow(y - (*i)[1], 2));
-                if (distance < stickDistance) {
-                    push(x, y);
-                    pushQ3(x, y);
-                    if (abs(x) <= stickDistance) {
-                        pushQ4(x, y);
-                    }
-                    if (abs(y) <= stickDistance) {
-                        pushQ2(x, y);
-                    }
-
-                    checkMax(radius);
-                    cout << size << endl; // TODO: cout
-                    return true;
-                }
-            }
-            break;
-        case 4:
-            for (vector<vector<double>>::reverse_iterator i = SE.rbegin(); i != SE.rend(); i++ ) {
-                double distance = sqrt(pow(x - (*i)[0], 2) + pow(y - (*i)[1], 2));
-                if (distance < stickDistance) {
-                    push(x, y);
-                    pushQ4(x, y);
-                    if (abs(x) <= stickDistance) {
-                        pushQ3(x, y);
-                    }
-                    if (abs(y) <= stickDistance) {
-                        pushQ1(x, y);
-                    }
-
-                    checkMax(radius);
-                    cout << size << endl; // TODO: cout
-                    return true;
-                }
-            }
-            break;
+    for (auto i = cluster[r][q].rbegin(); i != cluster[r][q].rend(); i++) {
+        if (sqrt(pow(x - (*i)[0], 2) + pow(y - (*i)[1], 2)) <= stickDistance) {
+            push(x, y, q);
+            checkMax(radius);
+            return true;
+        }
     }
 
     return false;
 }
+
 
 bool DLA::kill(double x, double y) {
     double distance = sqrt(pow(x,2) + pow(y,2));
