@@ -21,6 +21,12 @@ DLA::DLA() : seedRadius(1), killRadius(3), stickDistance(0.25), stepLength(0.5),
     ringUp();
 }
 
+void DLA::run(int N) {
+    while (size != N + 1) {
+        walk();
+    }
+}
+
 bool DLA::walk() {
     double radius = RandomDouble(seedRadius, killRadius);
     double theta = RandomDouble(0, 2 * PI);
@@ -57,7 +63,6 @@ void DLA::push(double x, double y, int q) { // TODO
     aggregate.push_back(v);
 
     cluster[r][q].push_back(v);
-
     if (edgeX) {
         cluster[r][qx].push_back(v);
     }
@@ -88,6 +93,45 @@ void DLA::push(double x, double y, int q) { // TODO
     }
     cout << size << endl; // TODO
     size++;
+}
+
+bool DLA::stick(double x, double y) { // TODO
+    double radius = sqrt(pow(x,2) + pow(y,2));
+
+    if (radius > maxRadius + stickDistance) {
+        return false;
+    }
+
+    double theta = atan2(y, x);
+
+    int r = ring(radius);
+    int q = quadrant(theta);
+
+    for (auto i = cluster[r][q].rbegin(); i != cluster[r][q].rend(); i++) {
+        if (sqrt(pow(x - (*i)[0], 2) + pow(y - (*i)[1], 2)) <= stickDistance) {
+            push(x, y, q);
+            checkMax(radius);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+bool DLA::kill(double x, double y) {
+    double distance = sqrt(pow(x,2) + pow(y,2));
+
+    return (distance > killRadius);
+}
+
+void DLA::checkMax(double radius) {
+    maxRadius = radius > maxRadius ? radius : maxRadius;
+
+    if (seedRadius < 0.5 * maxRadius) {
+        seedRadius = 2 * maxRadius;
+        killRadius = 5 * maxRadius;
+    }
 }
 
 int DLA::quadrant(double theta) { // theta within [-PI, PI]
@@ -157,51 +201,6 @@ void DLA::ringUp() {
     cluster.push_back(q); // ring vector
 }
 
-bool DLA::stick(double x, double y) { // TODO
-    double radius = sqrt(pow(x,2) + pow(y,2));
-
-    if (radius > maxRadius + stickDistance) {
-        return false;
-    }
-
-    double theta = atan2(y, x);
-
-    int r = ring(radius);
-    int q = quadrant(theta);
-
-    for (auto i = cluster[r][q].rbegin(); i != cluster[r][q].rend(); i++) {
-        if (sqrt(pow(x - (*i)[0], 2) + pow(y - (*i)[1], 2)) <= stickDistance) {
-            push(x, y, q);
-            checkMax(radius);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
-bool DLA::kill(double x, double y) {
-    double distance = sqrt(pow(x,2) + pow(y,2));
-
-    return (distance > killRadius);
-}
-
-void DLA::checkMax(double radius) {
-    maxRadius = radius > maxRadius ? radius : maxRadius;
-
-    if (seedRadius < 0.5 * maxRadius) {
-        seedRadius = 2 * maxRadius;
-        killRadius = 5 * maxRadius;
-    }
-}
-
-void DLA::run(int N) {
-    while (size != N + 1) {
-        walk();
-    }
-}
-
 void DLA::print(string filename) {
     ofstream file;
     file.open(filename);
@@ -213,16 +212,16 @@ void DLA::print(string filename) {
 }
 
 void DLA::calcFractalDimension() {
-    for (int i = 0; i < int(maxRadius) + 2; i++) {
+    for (int i = 0; i <= int(maxRadius); i++) {
         countR.push_back(0);
     }
 
     for (auto i : aggregate) {
         int distance = sqrt(pow(i[0], 2) + pow(i[1], 2));
-        countR[distance + 1]++;
+        countR[distance]++;
     }
 
-    for (int i = 1; i < int(maxRadius) + 2; i++) {
+    for (int i = 1; i <= int(maxRadius); i++) {
         countR[i] += countR[i - 1];
     }
 

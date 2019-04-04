@@ -19,23 +19,23 @@ class DLA {
     double stepLength;
     double stickDistance;
     double maxRadius;
+    int size;
     vector<vector<double>> aggregate;
     vector<vector<vector<vector<double>>>> cluster; // ring -> quadrant -> position -> x, y
-    int size;
     vector<double> countR;
 public:
     DLA();
+    void run(int N);
     bool walk();
+    void push(double x, double y, int q);
     bool stick(double x, double y);
     bool kill(double x, double y);
     void checkMax(double radius);
     int quadrant(double theta);
-    int ring(double radius);
     int neighborX(int q);
     int neighborY(int q);
-    void push(double x, double y, int q);
+    int ring(double radius);
     void ringUp();
-    void run(int N);
     void print(string filename);
     void calcFractalDimension();
 };
